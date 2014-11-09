@@ -1,0 +1,108 @@
+<div id="loginModal" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form>
+                <div class="modal-body">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                    <h3 class="modal-title">Login</h3>
+                    <br>
+                    <div data-form-field="email" class="form-group">
+                        <label for="email">Email Address:</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Email" value="craig.labenz@gmail.com" />
+                        <div class="errors"></div>
+                    </div>
+                    <div data-form-field="username" class="form-group">
+                        <label for="username">Username (in Clash of Clans):</label>
+                        <input type="username" class="form-control" id="username" name="username" placeholder="Username" value="Craig"/>
+                        <div class="errors"></div>
+                    </div>
+                    <div data-form-field="password" class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" class="form-control" id="password" name="password" />
+                        <small>Passwords are optional! If you don't set one, you can login with just your email address and we'll send you a 1-time link you can use anytime you want to sign in.</small>
+                        <div class="errors"></div>
+                    </div>
+                    <div class="global-errors errors"></div>
+                    <div id="newUser" class="alert alert-info" style="display:none;">
+                        <p><strong>Are you a new user?</strong> It looks like we don't know any users by this information. If you don't have an account, we can create one for you! If you believe you do have an account, you may have entered incorrect information.</p>
+                        <br>
+                        <div id="createNewUser" class="btn btn-primary">Create Account</div>
+                    </div>
+
+                    <input type="hidden" name="requested_clan_id" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <input type="submit" class="btn btn-primary" value="Login">
+                </div>
+            </form>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<style>
+.errors {color:red;}
+</style>
+
+<script>
+$(function(){
+
+    var onLogin = function(data, status, xhr){
+        window.location.reload();
+    };
+
+    var onLoginFail = function(response, status, message) {
+        if (response.status == 404) {
+            $("#newUser").show();
+
+        } else if (response.status == 400) {
+            var data = JSON.parse(response.responseText);
+            $("#loginModal .errors, #loginModal .global-errors").html('');
+
+            _.each(data, function(errors, key){
+                $field_section = $("[data-form-field="+ key +"]")
+                if ($field_section.length > 0) {
+                    $field_errors_section = $field_section.find(".errors");
+                    _.each(errors, function(error){
+                        $field_errors_section.append("<p>" + error + "</p>");
+                    });
+                } else {
+                    _.each(errors, function(error) {
+                        $("#loginModal .global-errors").append("<p>"+ error +"</p>");
+                    });
+                }
+            });
+        } else {
+            $("#loginModal .global-errors").append("<p>We're experiencing technical difficulties right now! Try again soon!</p>");
+        }
+    };
+
+    var attemptLogin = function($form, extraData) {
+        var data = $form.serializeObject();
+
+        if (extraData) {
+            data = _.defaults(data, extraData)
+        }
+
+        $.ajax({
+            "type": "POST",
+            "url": "/login/",
+            "data": data
+        })
+            .done(onLogin)
+            .fail(onLoginFail);
+    };
+
+    $('#createNewUser').on("click", function(){
+        var $form = $("#loginModal form"),
+            extraData = {should_create: true};
+
+        attemptLogin($form, extraData);
+    });
+
+    $("#loginModal form").on("submit", function(event){
+        event.preventDefault();
+        attemptLogin($(this));
+    });
+});
+</script>
